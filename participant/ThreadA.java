@@ -5,39 +5,42 @@ import java.util.Scanner;
 import java.net.UnknownHostException;
 import java.io.UncheckedIOException;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.io.OutputStream;
 import static java.lang.System.out;
 
 class ThreadA implements Runnable{
-    Scanner cin;  // Command socket in
-    PrintStream cps; // Command socket out.
+    String id;
+    InetSocketAddress serverAddr;
     boolean registered;
     boolean connected;
-    String id;
     ThreadB threadB;
     ThreadA(){
 	id=Main.id;
 	String []addrSplit=Main.coordAddr.split("\\s+");
-	int port=Integer.parseInt(addrSplit[1]);
 	try{
-	    Socket commandSocket=new Socket(addrSplit[0],port);
-	    cin=new Scanner(commandSocket.getInputStream());
-	    cps=new PrintStream(commandSocket.getOutputStream());
+	    serverAddr=
+		new InetSocketAddress(InetAddress.getByName(addrSplit[0]),
+				      Integer.parseInt(addrSplit[1]));
 	}catch(UnknownHostException e){
-	    out.println("Unknown Host "+addrSplit[0]);
+	    out.println("Unknown server host: "+addrSplit[0]);
 	    System.exit(1);
-	}catch(IOException e){
-	    throw new UncheckedIOException(e);
 	}
     }
-
-
+    
     /**
        Send a msg on command socket, wait for ack.
      */
     private void sendMsg(String msg){
-	cps.println(msg.trim());
-	cin.nextLine();
+	try(Socket s=new Socket()){
+	    s.connect(serverAddr);
+	    OutputStream os=s.getOutputStream();
+	    os.write((id+" "+msg).getBytes());
+	    os.flush();
+	}catch(IOException e){
+	    throw new UncheckedIOException(e);
+	}
     }
     
     /**
@@ -48,6 +51,7 @@ class ThreadA implements Runnable{
 	ServerSocket ss=null;
 	try{
 	    ss=new ServerSocket(Integer.parseInt(portStr));
+	    ss.setReuseAddress(true);
 	    threadB=new ThreadB(ss);
 	    (new Thread(threadB)).start();
 	}catch (IOException e){
@@ -55,6 +59,7 @@ class ThreadA implements Runnable{
 	}
 	return ss.getInetAddress().getHostAddress() + " " +ss.getLocalPort();
     }
+    
     /**
        Kill threadB
      */
@@ -64,6 +69,7 @@ class ThreadA implements Runnable{
 	    threadB=null;
 	}
     }
+    
     @Override
     public void run(){
 	Scanner sin=new Scanner(System.in);
@@ -75,7 +81,7 @@ class ThreadA implements Runnable{
 		if(registered){
 		    out.println("NOP. Already registered.");
 		}else{
-		    sendMsg("register "+id+" "+startB(split[1]));
+		    sendMsg("register "+startB(split[1]));
 		    connected=true;
 		    registered=true;
 		}
