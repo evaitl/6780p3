@@ -16,6 +16,7 @@ import java.nio.channels.SelectionKey;
 import java.util.Set;
 import java.util.Iterator;
 
+
 class Coordinator implements Runnable {
     int td;
     Selector selector;
@@ -36,21 +37,26 @@ class Coordinator implements Runnable {
      */
     void processCommand(SocketChannel sc){
         ByteBuffer buffer = ByteBuffer.allocate(1024);
-
         try{
-            sc.read(buffer);
+            if(sc.read(buffer)==-1){
+		sc.close();
+		return;
+	    }
             sc.write(ByteBuffer.wrap("ACK\n".getBytes()));
             sc.close();
         }catch (IOException e) {
             throw new UncheckedIOException(e);
         }
         String cmd = new String(buffer.array()).trim();
+	
+	System.out.println("cood: "+cmd);
+
         String [] split = cmd.split("\\s+");
         String id = split[0];
         Client c = clientIdMap.get(id);
         if (c == null) {
             c = new Client(id);
-            clientIdMap.put(id, new Client(id));
+            clientIdMap.put(id, c);
         }
         switch (split[1]) {
         case "register":
@@ -93,6 +99,8 @@ class Coordinator implements Runnable {
     public void run(){
         try{
             while (true) {
+		int numKeys=selector.select();
+		
                 Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iter = selectedKeys.iterator();
                 while (iter.hasNext()) {

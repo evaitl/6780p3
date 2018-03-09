@@ -6,7 +6,7 @@ import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.UncheckedIOException;
 import java.io.IOException;
-
+import java.io.FileOutputStream;
 class ThreadB implements Runnable, Closeable {
     private boolean killed;
     private ServerSocket ss;
@@ -15,7 +15,7 @@ class ThreadB implements Runnable, Closeable {
     ThreadB(ServerSocket ss_){
         ss = ss_;
         try{
-            ps = new PrintStream(Main.logName);
+            ps = new PrintStream(new FileOutputStream(Main.logName,true),true);
         }catch (FileNotFoundException e) {
             throw new UncheckedIOException(e);
         }

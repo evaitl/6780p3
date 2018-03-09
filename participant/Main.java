@@ -11,7 +11,7 @@ class Main {
             System.out.println("Usage: participant fname");
             System.exit(1);
         }
-        try (Scanner sin = new Scanner(new File(args[1]))) {
+        try (Scanner sin = new Scanner(new File(args[0]))) {
             id = sin.nextLine().trim();
             logName = sin.nextLine().trim();
             coordAddr = sin.nextLine().trim();

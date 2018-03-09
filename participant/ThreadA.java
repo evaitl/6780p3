@@ -13,6 +13,7 @@ import static java.lang.System.out;
 class ThreadA implements Runnable {
     String id;
     InetSocketAddress serverAddr;
+    InetAddress myAddr;
     boolean registered;
     boolean connected;
     ThreadB threadB;
@@ -27,16 +28,27 @@ class ThreadA implements Runnable {
             out.println("Unknown server host: " + addrSplit[0]);
             System.exit(1);
         }
+	try(Socket s=new Socket()){
+	    s.connect(serverAddr);
+	    // Just in case we are multi-homed or something. We need
+	    // to use an address for ThreadB that the server can get
+	    // to. That address is the address of a socket that can
+	    // get to the server.
+	    myAddr=s.getLocalAddress();
+	}catch(IOException e){
+	    throw new UncheckedIOException(e);
+	}
     }
 
     /**
        Send a msg on command socket, wait for ack.
      */
     private void sendMsg(String msg){
+	msg=id+" "+msg;
         try (Socket s = new Socket()) {
             s.connect(serverAddr);
             OutputStream os = s.getOutputStream();
-            os.write((id + " " + msg).getBytes());
+            os.write(msg.getBytes());
             os.flush();
         }catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -50,7 +62,7 @@ class ThreadA implements Runnable {
         assert threadB == null;
         ServerSocket ss = null;
         try{
-            ss = new ServerSocket(Integer.parseInt(portStr));
+            ss = new ServerSocket(Integer.parseInt(portStr),2,myAddr);
             ss.setReuseAddress(true);
             threadB = new ThreadB(ss);
             (new Thread(threadB)).start();
@@ -73,7 +85,7 @@ class ThreadA implements Runnable {
     @Override
     public void run(){
         Scanner sin = new Scanner(System.in);
-
+	out.print("ta# ");
         while (sin.hasNextLine()) {
             String line = sin.nextLine().trim();
             String [] split = line.split("\\s+");
@@ -122,6 +134,7 @@ class ThreadA implements Runnable {
             default:
                 System.out.println("Unknown command: " + split[0]);
             }
+	    out.print("ta# ");
         }
     }
 }
