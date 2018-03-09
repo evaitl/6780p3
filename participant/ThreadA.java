@@ -5,19 +5,24 @@ import java.util.Scanner;
 import java.net.UnknownHostException;
 import java.io.UncheckedIOException;
 import java.io.IOException;
+import java.io.PrintStream;
 import static java.lang.System.out;
 
 class ThreadA implements Runnable{
-    Socket commandSocket;
+    Scanner cin;  // Command socket in
+    PrintStream cps; // Command socket out.
     boolean registered;
     boolean connected;
     String id;
+    ThreadB threadB;
     ThreadA(){
 	id=Main.id;
 	String []addrSplit=Main.coordAddr.split("\\s+");
 	int port=Integer.parseInt(addrSplit[1]);
 	try{
-	    commandSocket=new Socket(addrSplit[0],port);
+	    Socket commandSocket=new Socket(addrSplit[0],port);
+	    cin=new Scanner(commandSocket.getInputStream());
+	    cps=new PrintStream(commandSocket.getOutputStream());
 	}catch(UnknownHostException e){
 	    out.println("Unknown Host "+addrSplit[0]);
 	    System.exit(1);
@@ -25,12 +30,16 @@ class ThreadA implements Runnable{
 	    throw new UncheckedIOException(e);
 	}
     }
-    ThreadB threadB;
+
+
     /**
        Send a msg on command socket, wait for ack.
      */
     private void sendMsg(String msg){
+	cps.println(msg.trim());
+	cin.nextLine();
     }
+    
     /**
        Start threadB. Return addr, port string.
      */
@@ -66,7 +75,7 @@ class ThreadA implements Runnable{
 		if(registered){
 		    out.println("NOP. Already registered.");
 		}else{
-		    sendMsg("register "+startB(split[1]));
+		    sendMsg("register "+id+" "+startB(split[1]));
 		    connected=true;
 		    registered=true;
 		}
