@@ -1,4 +1,7 @@
-.PHONY: all clean
+.PHONY: all clean indent
+
+SRCS := $(wildcard coordinator/*.java)
+SRCS += $(wildcard participant/*.java)
 
 all:
 	javac participant/*.java
@@ -9,3 +12,6 @@ all:
 clean:
 	-rm participant/*.class
 	-rm coordinator/*.class
+
+indent:
+	uncrustify --no-backup -c docs/uncrustify.cfg $(SRCS)
