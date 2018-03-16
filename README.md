@@ -29,11 +29,14 @@ scaling better and we don't have to screw around with synchronization
 problems.
 
 The client just creates the two threads ThreadA and ThreadB. ThreadA
-handles user input while ThreadB creates a `ServerSocket` and `accept()`s
-while waiting for a connection from the coordinator (server). The
-`ServerSocket` is only used once. After the `accept()`, we call `close()` on
-it.
+handles user input and sending command messages to the server while
+ThreadB creates a `ServerSocket` and `accept()`s while waiting for a
+connection from the coordinator (server). The `ServerSocket` is only
+used once. After the `accept()`, we call `close()` on it.
 
+Command messages sent by ThreadA each have their own network
+connection. This means we create a new Java `Socket`, then
+`connect()`, `write()`, and `close()` for each command.
 
 Disclaimer
 ==========
